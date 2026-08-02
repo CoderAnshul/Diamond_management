@@ -72,13 +72,17 @@ p, span, div {
 }
 
 /* Force buttons to solid black and their text to white */
-.bg-emerald-500, .bg-teal-500, .bg-emerald-600, .bg-black {
+.bg-emerald-500, .bg-teal-500, .bg-emerald-600 {
   background: #000000 !important;
   background-color: #000000 !important;
   color: #ffffff !important;
 }
 
-.bg-emerald-500 *, .bg-teal-500 *, .bg-emerald-600 *, .bg-black *, .bg-emerald-500 span, .bg-teal-500 span, .bg-emerald-600 span, .bg-black span {
+.bg-emerald-500 *, .bg-teal-500 *, .bg-emerald-600 *, .bg-emerald-500 span, .bg-teal-500 span, .bg-emerald-600 span {
+  color: #ffffff !important;
+}
+
+.bg-black, .bg-black *, .bg-black span {
   color: #ffffff !important;
 }
 

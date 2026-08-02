@@ -9,9 +9,12 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-electron
 dist-ssr
 *.local
 .env
+backend/storage/uploads/photos/*
+backend/storage/uploads/docs/*
 
 # Editor directories and files
 .vscode/*

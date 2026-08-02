@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -16,7 +17,7 @@
     "appId": "com.diamond.locker.management",
     "productName": "DiamondLocker",
     "directories": {
-      "output": "dist-electron"
+      "output": "dist-desktop"
     },
     "win": {
       "target": "portable"
@@ -24,6 +25,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "backend/**/*",
       "package.json"
     ],
     "asar": true

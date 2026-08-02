@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
+import api, { API_HOST } from '../utils/api';
 import { FiSearch, FiPlus, FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -135,7 +135,7 @@ const CustomerList = () => {
                   <tr key={cust._id} className="hover:bg-zinc-900/30 light:hover:bg-zinc-250/30 transition-colors">
                     <td className="px-6 py-4 font-semibold flex items-center space-x-3">
                       <img
-                        src={cust.photoUrl ? `http://localhost:5000${cust.photoUrl}` : 'https://placehold.co/100'}
+                        src={cust.photoUrl ? `${API_HOST}${cust.photoUrl}` : 'https://placehold.co/100'}
                         alt={cust.name}
                         className="w-8 h-8 rounded-full object-cover border border-zinc-800"
                       />

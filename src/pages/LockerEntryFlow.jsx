@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Webcam from 'react-webcam';
-import api from '../utils/api';
+import api, { API_HOST } from '../utils/api';
 import {
   FiSearch,
   FiCamera,
@@ -202,7 +202,7 @@ const LockerEntryFlow = () => {
                   >
                     <div className="flex items-center space-x-3.5">
                       <img
-                        src={`http://localhost:5000${res.customer.photoUrl}`}
+                        src={`${API_HOST}${res.customer.photoUrl}`}
                         alt={res.customer.name}
                         className="w-12 h-12 rounded-full object-cover border border-zinc-800"
                       />
@@ -243,7 +243,7 @@ const LockerEntryFlow = () => {
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">Stored Master Photo</span>
                 <div className="w-full h-56 rounded-2xl overflow-hidden border border-zinc-850 light:border-zinc-300 bg-zinc-950 shadow-inner">
                   <img
-                    src={`http://localhost:5000${selectedClient.customer.photoUrl}`}
+                    src={`${API_HOST}${selectedClient.customer.photoUrl}`}
                     alt="Master Avatar"
                     className="w-full h-full object-cover"
                   />
@@ -372,7 +372,7 @@ const LockerEntryFlow = () => {
               <h4 className="font-bold text-xs uppercase tracking-wider text-zinc-500">Customer Details</h4>
               <div className="flex items-center space-x-3">
                 <img
-                  src={`http://localhost:5000${selectedClient.customer.photoUrl}`}
+                  src={`${API_HOST}${selectedClient.customer.photoUrl}`}
                   alt="Customer Avatar"
                   className="w-12 h-12 rounded-xl object-cover border border-zinc-800"
                 />
@@ -421,7 +421,7 @@ const LockerEntryFlow = () => {
                     className="flex items-center space-x-2.5 p-2 rounded-xl bg-zinc-950/60 light:bg-zinc-100 hover:bg-zinc-900 border border-zinc-850 light:border-zinc-300 text-xs cursor-pointer group transition-all"
                   >
                     <img
-                      src={`http://localhost:5000${ben.photoUrl}`}
+                      src={`${API_HOST}${ben.photoUrl}`}
                       alt={ben.name}
                       className="w-8 h-8 rounded object-cover border border-zinc-800"
                     />

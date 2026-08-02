@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
+import api, { API_HOST } from '../utils/api';
 import {
   FiGrid,
   FiUsers,
@@ -61,7 +61,7 @@ const Dashboard = () => {
   const isElectron = !!window.electronAPI;
 
   const handleDownloadApp = () => {
-    const downloadUrl = 'http://localhost:5000/uploads/DiamondLockerSetup.exe';
+    const downloadUrl = `${API_HOST}/uploads/DiamondLockerSetup.exe`;
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = 'DiamondLockerSetup.exe';
@@ -210,7 +210,7 @@ const Dashboard = () => {
                     <tr key={visit._id} className="hover:bg-zinc-900/30 light:hover:bg-zinc-250/30 transition-colors">
                       <td className="py-3 font-semibold flex items-center space-x-2.5">
                         <img
-                          src={visit.capturedPhotoUrl ? `http://localhost:5000${visit.capturedPhotoUrl}` : 'https://placehold.co/100'}
+                          src={visit.capturedPhotoUrl ? `${API_HOST}${visit.capturedPhotoUrl}` : 'https://placehold.co/100'}
                           alt={visit.customerName}
                           className="w-7 h-7 rounded-full object-cover border border-zinc-800"
                         />
@@ -265,7 +265,7 @@ const Dashboard = () => {
                 >
                   <div className="flex items-center space-x-3">
                     <img
-                      src={cust.photoUrl ? `http://localhost:5000${cust.photoUrl}` : 'https://placehold.co/100'}
+                      src={cust.photoUrl ? `${API_HOST}${cust.photoUrl}` : 'https://placehold.co/100'}
                       alt={cust.name}
                       className="w-9 h-9 rounded-full object-cover border border-zinc-800"
                     />

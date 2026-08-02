@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../utils/api';
+import api, { API_HOST } from '../utils/api';
 import {
   FiSettings,
   FiRefreshCw,
@@ -141,7 +141,7 @@ const SettingsPage = () => {
 
   const handleDownloadBackup = (id, filename) => {
     // Open in a new tab to trigger file download stream
-    window.open(`http://localhost:5000/api/v1/backups/download/${id}`, '_blank');
+    window.open(`${API_HOST}/api/v1/backups/download/${id}`, '_blank');
   };
 
   const handleRestoreBackup = async (id, filename) => {

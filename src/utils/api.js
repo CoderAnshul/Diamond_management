@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const apiURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+export const API_HOST = apiURL.replace('/api/v1', '');
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
+  baseURL: apiURL,
   timeout: 15000
 });
 

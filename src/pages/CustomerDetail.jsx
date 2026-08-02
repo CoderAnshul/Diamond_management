@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Webcam from 'react-webcam';
-import api from '../utils/api';
+import api, { API_HOST } from '../utils/api';
 import {
   FiArrowLeft,
   FiUserPlus,
@@ -212,7 +212,7 @@ const CustomerDetail = () => {
         <div className="bg-zinc-900/10 light:bg-zinc-200/10 border border-zinc-900 light:border-zinc-300 rounded-3xl p-6 flex flex-col items-center justify-between text-center relative overflow-hidden">
           
           <img
-            src={`http://localhost:5000${customer.photoUrl}`}
+            src={`${API_HOST}${customer.photoUrl}`}
             alt={customer.name}
             className="w-44 h-44 rounded-2xl object-cover border-2 border-emerald-500 shadow-2xl mb-4"
           />
@@ -306,7 +306,7 @@ const CustomerDetail = () => {
                 {customer.documents.map((doc, idx) => (
                   <a
                     key={idx}
-                    href={`http://localhost:5000${doc.fileUrl}`}
+                    href={`${API_HOST}${doc.fileUrl}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center justify-between p-3 rounded-xl bg-zinc-950/60 light:bg-zinc-100 hover:bg-zinc-900 border border-zinc-850 light:border-zinc-300 text-xs font-semibold text-zinc-300 light:text-zinc-800 transition-all group"
@@ -355,7 +355,7 @@ const CustomerDetail = () => {
                 >
                   <div className="flex items-center space-x-3">
                     <img
-                      src={`http://localhost:5000${ben.photoUrl}`}
+                      src={`${API_HOST}${ben.photoUrl}`}
                       alt={ben.name}
                       className="w-10 h-10 rounded-lg object-cover border border-zinc-800"
                     />
@@ -403,7 +403,7 @@ const CustomerDetail = () => {
                 >
                   <div className="flex items-start space-x-3.5">
                     <img
-                      src={`http://localhost:5000${visit.capturedPhotoUrl}`}
+                      src={`${API_HOST}${visit.capturedPhotoUrl}`}
                       alt="Captured Visit"
                       className="w-14 h-14 rounded-lg object-cover border border-zinc-800"
                     />

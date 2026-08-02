@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import Webcam from 'react-webcam';
-import api from '../utils/api';
+import api, { API_HOST } from '../utils/api';
 import { FiCamera, FiUploadCloud, FiTrash2, FiArrowLeft, FiCheck } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -60,7 +60,7 @@ const CustomerRegister = () => {
             setValue('lockerId', customer.lockerId._id);
           }
           
-          setCapturedPhoto(`http://localhost:5000${customer.photoUrl}`);
+          setCapturedPhoto(`${API_HOST}${customer.photoUrl}`);
         }
       } catch (err) {
         toast.error('Failed to load customer profile');

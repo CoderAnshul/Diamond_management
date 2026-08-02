@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+  }
+}
+
+body {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Force light themes on all subcomponents */
+.bg-zinc-950, .bg-zinc-900, .bg-zinc-900\/40, .bg-zinc-950\/60, .bg-zinc-900\/20, .bg-zinc-950\/40, .bg-zinc-905, .bg-zinc-900\/10, .bg-zinc-900\/15, .bg-zinc-900\/30, .bg-zinc-900\/50, .bg-zinc-950\/80 {
+  background-color: #ffffff !important;
+}
+
+.border-zinc-800, .border-zinc-850, .border-zinc-900, .border-zinc-800\/60, .border-zinc-800\/40, .border-zinc-800\/20, .border-zinc-800\/50, .border-zinc-800\/30, .border-zinc-850\/40, .border-zinc-850\/20 {
+  border-color: #e4e4e7 !important;
+}
+
+/* Force typography to crisp black */
+h1, h2, h3, h4, h5, h6, label, th, td, option, select, input, textarea {
+  color: #000000 !important;
+}
+
+p, span, div {
+  color: #18181b;
+}
+
+.text-zinc-50, .text-zinc-100, .text-zinc-200, .text-zinc-300, .text-zinc-400, .text-zinc-550 {
+  color: #18181b !important;
+}
+
+.text-zinc-500, .text-zinc-600, .text-zinc-450, .text-zinc-650 {
+  color: #52525b !important;
+}
+
+/* Force active/highlight links and indicators to black */
+.text-emerald-400, .text-teal-400 {
+  color: #000000 !important;
+}
+
+/* Force sidebar active styling to clean border */
+.border-emerald-400 {
+  border-color: #000000 !important;
+}
+
+.text-emerald-400 {
+  color: #000000 !important;
+}
+
+/* Force buttons to solid black and their text to white */
+.bg-emerald-500, .bg-teal-500, .bg-emerald-600 {
+  background: #000000 !important;
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.bg-emerald-500 *, .bg-teal-500 *, .bg-emerald-600 *, .bg-emerald-500 span, .bg-teal-500 span, .bg-emerald-600 span {
+  color: #ffffff !important;
+}
+
+.bg-emerald-500\/10, .bg-teal-500\/10, .bg-emerald-500\/20, .bg-teal-500\/20, .bg-emerald-500\/15 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.bg-zinc-850, .bg-zinc-800 {
+  background-color: #f4f4f5 !important;
+  color: #000000 !important;
+}
+
+/* Glassmorphism overrides to white cards */
+.glass-panel {
+  background: #ffffff !important;
+  border: 1px solid #e4e4e7 !important;
+}
+
+/* Custom premium scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}

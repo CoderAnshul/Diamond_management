@@ -35,10 +35,68 @@ export const getLockerById = async (req, res) => {
 };
 
 export const createLocker = async (req, res) => {
-  const { lockerNumber, size, status } = req.body;
+  const { lockerNumber, startNumber, endNumber, size, status } = req.body;
+  const defaultSize = size || 'small'; // Default size to 'small' as all lockers are the same size
+
   try {
-    if (!lockerNumber || !size) {
-      return res.status(400).json({ success: false, error: 'Please provide locker number and size' });
+    // Range-based bulk locker creation
+    if (startNumber !== undefined && endNumber !== undefined) {
+      const start = parseInt(startNumber);
+      const end = parseInt(endNumber);
+
+      if (isNaN(start) || isNaN(end)) {
+        return res.status(400).json({ success: false, error: 'Start and End numbers must be valid integers' });
+      }
+
+      if (start > end) {
+        return res.status(400).json({ success: false, error: 'Start number cannot be greater than End number' });
+      }
+
+      // Generate range
+      const lockerNumbersToCreate = [];
+      for (let i = start; i <= end; i++) {
+        lockerNumbersToCreate.push(String(i));
+      }
+
+      // Check which ones already exist
+      const existingLockers = await Locker.find({ lockerNumber: { $in: lockerNumbersToCreate } });
+      const existingNumbers = new Set(existingLockers.map(l => l.lockerNumber));
+
+      // Filter out existing ones
+      const numbersToInsert = lockerNumbersToCreate.filter(num => !existingNumbers.has(num));
+
+      if (numbersToInsert.length === 0) {
+        return res.status(400).json({ success: false, error: 'All lockers in this range already exist' });
+      }
+
+      // Prepare documents
+      const docs = numbersToInsert.map(num => ({
+        lockerNumber: num,
+        size: defaultSize,
+        status: status || 'available'
+      }));
+
+      const createdLockers = await Locker.insertMany(docs);
+
+      await logActivity({
+        userId: req.user._id,
+        username: req.user.username,
+        action: 'CREATE_LOCKER',
+        module: 'Locker',
+        remarks: `Created range ${start} to ${end} (${createdLockers.length} new lockers)`,
+        ipAddress: req.ip
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: `Successfully created ${createdLockers.length} new lockers in the range ${start} to ${end}`,
+        lockers: createdLockers
+      });
+    }
+
+    // Single locker creation fallback
+    if (!lockerNumber) {
+      return res.status(400).json({ success: false, error: 'Please provide locker number or range values' });
     }
 
     const existing = await Locker.findOne({ lockerNumber });
@@ -48,7 +106,7 @@ export const createLocker = async (req, res) => {
 
     const locker = await Locker.create({
       lockerNumber,
-      size,
+      size: defaultSize,
       status: status || 'available'
     });
 
@@ -58,7 +116,7 @@ export const createLocker = async (req, res) => {
       action: 'CREATE_LOCKER',
       module: 'Locker',
       lockerId: locker._id,
-      remarks: `Created locker: ${lockerNumber} (${size})`,
+      remarks: `Created locker: ${lockerNumber} (${defaultSize})`,
       ipAddress: req.ip
     });
 

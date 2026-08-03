@@ -19,13 +19,14 @@ const LockerList = () => {
   const [loading, setLoading] = useState(true);
   
   // Filter states
-  const [sizeFilter, setSizeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
+  const [createMode, setCreateMode] = useState('bulk'); // 'single' or 'bulk'
   const [newLockerNumber, setNewLockerNumber] = useState('');
-  const [newLockerSize, setNewLockerSize] = useState('small');
+  const [startNumber, setStartNumber] = useState('');
+  const [endNumber, setEndNumber] = useState('');
   const [newLockerStatus, setNewLockerStatus] = useState('available');
 
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -40,7 +41,7 @@ const LockerList = () => {
     setLoading(true);
     try {
       const response = await api.get('/lockers', {
-        params: { status: statusFilter, size: sizeFilter }
+        params: { status: statusFilter }
       });
       if (response.data.success) {
         setLockers(response.data.lockers);
@@ -54,20 +55,38 @@ const LockerList = () => {
 
   useEffect(() => {
     fetchLockers();
-  }, [sizeFilter, statusFilter]);
+  }, [statusFilter]);
 
   const handleAddLocker = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('/lockers', {
-        lockerNumber: newLockerNumber,
-        size: newLockerSize,
-        status: newLockerStatus
-      });
+      const payload = {
+        status: newLockerStatus,
+        size: 'small' // Default size
+      };
+
+      if (createMode === 'bulk') {
+        if (!startNumber || !endNumber) {
+          toast.error('Please enter starting and ending values');
+          return;
+        }
+        payload.startNumber = startNumber;
+        payload.endNumber = endNumber;
+      } else {
+        if (!newLockerNumber) {
+          toast.error('Please enter a locker number');
+          return;
+        }
+        payload.lockerNumber = newLockerNumber;
+      }
+
+      const response = await api.post('/lockers', payload);
       if (response.data.success) {
-        toast.success('Locker created successfully');
+        toast.success(response.data.message || 'Lockers created successfully');
         setShowAddModal(false);
         setNewLockerNumber('');
+        setStartNumber('');
+        setEndNumber('');
         fetchLockers();
       }
     } catch (err) {
@@ -171,20 +190,6 @@ const LockerList = () => {
           </select>
         </div>
 
-        <div className="flex-1 flex flex-col space-y-1">
-          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wide">Filter Size</label>
-          <select
-            value={sizeFilter}
-            onChange={(e) => setSizeFilter(e.target.value)}
-            className="bg-zinc-905 border border-zinc-800 light:border-zinc-300 rounded-xl py-2 px-3 outline-none"
-          >
-            <option value="">All Sizes</option>
-            <option value="small">Small</option>
-            <option value="medium">Medium</option>
-            <option value="large">Large</option>
-            <option value="extra-large">Extra Large</option>
-          </select>
-        </div>
       </div>
 
       {/* Main Locker Grid */}
@@ -214,7 +219,7 @@ const LockerList = () => {
                 <div>
                   <div className="flex justify-between items-start">
                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-                      {locker.size}
+                      {locker.status}
                     </span>
                     <span className="w-2.5 h-2.5 rounded-full bg-current"></span>
                   </div>
@@ -290,32 +295,71 @@ const LockerList = () => {
           >
             <h3 className="text-md font-bold uppercase tracking-wider text-emerald-400">Configure New Locker</h3>
             
-            <div className="space-y-3 text-xs">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase">Locker Number</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. L-102"
-                  value={newLockerNumber}
-                  onChange={(e) => setNewLockerNumber(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
-                />
-              </div>
+            {/* Mode selection tabs */}
+            <div className="flex border-b border-zinc-800 mb-4">
+              <button
+                type="button"
+                onClick={() => setCreateMode('bulk')}
+                className={`flex-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-center cursor-pointer transition-all ${
+                  createMode === 'bulk'
+                    ? 'text-emerald-400 border-b-2 border-emerald-500'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Bulk Range
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateMode('single')}
+                className={`flex-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-center cursor-pointer transition-all ${
+                  createMode === 'single'
+                    ? 'text-emerald-400 border-b-2 border-emerald-500'
+                    : 'text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                Single Locker
+              </button>
+            </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase">Locker Size</label>
-                <select
-                  value={newLockerSize}
-                  onChange={(e) => setNewLockerSize(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none cursor-pointer"
-                >
-                  <option value="small">Small</option>
-                  <option value="medium">Medium</option>
-                  <option value="large">Large</option>
-                  <option value="extra-large">Extra Large</option>
-                </select>
-              </div>
+            <div className="space-y-3 text-xs">
+              {createMode === 'bulk' ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Start Value</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="e.g. 101"
+                      value={startNumber}
+                      onChange={(e) => setStartNumber(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">End Value</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="e.g. 110"
+                      value={endNumber}
+                      onChange={(e) => setEndNumber(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase">Locker Number</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. L-102"
+                    value={newLockerNumber}
+                    onChange={(e) => setNewLockerNumber(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
+                  />
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase">Default Status</label>

@@ -66,6 +66,7 @@ const LockerEntryFlow = () => {
     }
   };
 
+
   // Run search on page load if preset search parameter exists
   useEffect(() => {
     fetchStaff();

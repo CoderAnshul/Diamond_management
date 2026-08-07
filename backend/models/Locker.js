@@ -29,8 +29,12 @@ const LockerSchema = new mongoose.Schema({
   },
   size: {
     type: String,
-    enum: ['small', 'medium', 'large', 'extra-large'],
-    required: true
+    default: ''
+  },
+  keyNumber: {
+    type: String,
+    default: '',
+    trim: true
   },
   status: {
     type: String,

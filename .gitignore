@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-electron
+dist-desktop
 dist-ssr
 *.local
 .env
@@ -26,3 +27,6 @@ backend/storage/uploads/docs/*
 *.njsproj
 *.sln
 *.sw?
+
+# Executables
+*.exe

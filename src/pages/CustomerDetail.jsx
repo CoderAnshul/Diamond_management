@@ -41,6 +41,8 @@ const CustomerDetail = () => {
   const [beneficiaryAadhaar, setBeneficiaryAadhaar] = useState('');
   const [beneficiaryPhoto, setBeneficiaryPhoto] = useState(null);
   const [beneficiaryCamera, setBeneficiaryCamera] = useState(false);
+  const [beneficiarySignature, setBeneficiarySignature] = useState(null);
+  const [isNomineeSelection, setIsNomineeSelection] = useState(false);
   const webcamRef = useRef(null);
 
   const fetchProfile = async () => {
@@ -57,6 +59,7 @@ const CustomerDetail = () => {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchProfile();
@@ -122,7 +125,11 @@ const CustomerDetail = () => {
   const handleAddBeneficiary = async (e) => {
     e.preventDefault();
     if (!beneficiaryPhoto) {
-      toast.error('Beneficiary photo is required');
+      toast.error('Photo is required');
+      return;
+    }
+    if (!beneficiarySignature) {
+      toast.error('Signature image file is required');
       return;
     }
 
@@ -132,13 +139,15 @@ const CustomerDetail = () => {
     formData.append('mobile', beneficiaryMobile);
     formData.append('aadhaarNumber', beneficiaryAadhaar);
     formData.append('photoData', beneficiaryPhoto);
+    formData.append('signature', beneficiarySignature);
+    formData.append('isNominee', isNomineeSelection);
 
     try {
       const response = await api.post(`/customers/${id}/beneficiaries`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (response.data.success) {
-        toast.success('Beneficiary added successfully');
+        toast.success(isNomineeSelection ? 'Nominee added successfully' : 'Beneficiary added successfully');
         setShowBeneficiaryModal(false);
         // Clear inputs
         setBeneficiaryName('');
@@ -146,6 +155,8 @@ const CustomerDetail = () => {
         setBeneficiaryMobile('');
         setBeneficiaryAadhaar('');
         setBeneficiaryPhoto(null);
+        setBeneficiarySignature(null);
+        setIsNomineeSelection(false);
         fetchProfile();
       }
     } catch (err) {
@@ -229,7 +240,7 @@ const CustomerDetail = () => {
                 <p className="text-xl font-bold font-mono text-emerald-400">
                   Locker {customer.lockerId.lockerNumber}
                 </p>
-                <p className="text-xs text-zinc-400 capitalize">Size: {customer.lockerId.size}</p>
+                <p className="text-xs text-zinc-400 capitalize">Size: {customer.lockerId.size || 'N/A'}</p>
                 
                 {hasPermission('canManageLockers') && (
                   <div className="flex justify-center space-x-2 text-[10px] pt-1">
@@ -274,6 +285,10 @@ const CustomerDetail = () => {
               <div className="space-y-1">
                 <p className="text-zinc-500 font-bold uppercase text-[9px]">Security Deposit</p>
                 <p className="font-bold text-emerald-400">₹{customer.depositAmount.toLocaleString()}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-zinc-500 font-bold uppercase text-[9px]">Security Codeword</p>
+                <p className="font-bold text-emerald-400 uppercase tracking-wider">{customer.codeWord || 'N/A'}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-zinc-500 font-bold uppercase text-[9px]">Address</p>
@@ -326,64 +341,164 @@ const CustomerDetail = () => {
 
       </div>
 
-      {/* Bottom Split Layout: Beneficiaries & Visits */}
+      {/* Bottom Layout: Nominee, Beneficiaries & Visits */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Beneficiaries Panel */}
-        <div className="bg-zinc-900/10 light:bg-zinc-200/10 border border-zinc-900 light:border-zinc-300 rounded-3xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/30">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-zinc-400">Registered Beneficiaries</h4>
-            {hasPermission('canEditCustomer') && (
-              <button
-                onClick={() => setShowBeneficiaryModal(true)}
-                className="flex items-center space-x-1 text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-bold hover:bg-emerald-500/20 cursor-pointer"
-              >
-                <FiPlus className="w-3.5 h-3.5" />
-                <span>Add Beneficiary</span>
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            {beneficiaries.length === 0 ? (
-              <p className="text-xs text-zinc-500 italic text-center py-6">No beneficiaries registered</p>
-            ) : (
-              beneficiaries.map((ben) => (
-                <div
-                  key={ben._id}
-                  className="flex items-center justify-between p-3 rounded-2xl bg-zinc-950/40 light:bg-zinc-100/60 border border-zinc-850 light:border-zinc-350 text-xs"
+        {/* Nominee & Beneficiaries Column */}
+        <div className="space-y-6">
+          
+          {/* Nominee Panel */}
+          <div className="bg-zinc-900/10 light:bg-zinc-200/10 border border-zinc-900 light:border-zinc-300 rounded-3xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/30">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-zinc-400">Registered Nominee</h4>
+              {hasPermission('canEditCustomer') && !beneficiaries.some(b => b.isNominee) && (
+                <button
+                  onClick={() => {
+                    setIsNomineeSelection(true);
+                    setShowBeneficiaryModal(true);
+                  }}
+                  className="flex items-center space-x-1 text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-bold hover:bg-emerald-500/20 cursor-pointer"
                 >
-                  <div className="flex items-center space-x-3">
-                    <img
-                      src={`${API_HOST}${ben.photoUrl}`}
-                      alt={ben.name}
-                      className="w-10 h-10 rounded-lg object-cover border border-zinc-800"
-                    />
-                    <div>
-                      <p className="font-bold">{ben.name}</p>
-                      <p className="text-[10px] text-zinc-500 font-semibold uppercase">
-                        {ben.relationship} • {ben.mobile}
-                      </p>
+                  <FiPlus className="w-3.5 h-3.5" />
+                  <span>Add Nominee</span>
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {!beneficiaries.some(b => b.isNominee) ? (
+                <p className="text-xs text-zinc-500 italic text-center py-6">No nominee registered (Max 1 Nominee)</p>
+              ) : (
+                beneficiaries.filter(b => b.isNominee).map((nom) => (
+                  <div
+                    key={nom._id}
+                    className="flex items-center justify-between p-3 rounded-2xl bg-zinc-950/40 light:bg-zinc-100/60 border border-zinc-850 light:border-zinc-350 text-xs"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={`${API_HOST}${nom.photoUrl}`}
+                        alt={nom.name}
+                        className="w-10 h-10 rounded-lg object-cover border border-zinc-800"
+                      />
+                      <div>
+                        <p className="font-bold">{nom.name}</p>
+                        <p className="text-[10px] text-zinc-500 font-semibold uppercase">
+                          {nom.relationship} • {nom.mobile}
+                        </p>
+                        <p className="text-[9px] text-zinc-500 font-mono mt-0.5">Aadhaar: {nom.aadhaarNumber}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
+                      {nom.signatureUrl && (
+                        <div className="text-right flex flex-col items-end space-y-0.5">
+                          <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-wide">Signature</span>
+                          <img
+                            src={`${API_HOST}${nom.signatureUrl}`}
+                            alt="nominee signature"
+                            className="w-14 h-8 object-contain bg-white rounded border border-zinc-800 cursor-pointer"
+                            title="Click to view signature"
+                            onClick={() => window.open(`${API_HOST}${nom.signatureUrl}`, '_blank')}
+                          />
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center space-x-2">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-teal-500/15 text-teal-400">
+                          Nominee
+                        </span>
+                        {hasPermission('canEditCustomer') && (
+                          <button
+                            onClick={() => handleDeleteBeneficiary(nom._id)}
+                            className="p-1.5 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/25 transition-colors cursor-pointer"
+                          >
+                            <FiTrash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-500/15 text-emerald-400">
-                      {ben.status}
-                    </span>
-                    {hasPermission('canEditCustomer') && (
-                      <button
-                        onClick={() => handleDeleteBeneficiary(ben._id)}
-                        className="p-1.5 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/25 transition-colors cursor-pointer"
-                      >
-                        <FiTrash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
+
+          {/* Beneficiaries Panel */}
+          <div className="bg-zinc-900/10 light:bg-zinc-200/10 border border-zinc-900 light:border-zinc-300 rounded-3xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800/30">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-zinc-400">Registered Beneficiaries</h4>
+              {hasPermission('canEditCustomer') && beneficiaries.filter(b => !b.isNominee).length < 3 && (
+                <button
+                  onClick={() => {
+                    setIsNomineeSelection(false);
+                    setShowBeneficiaryModal(true);
+                  }}
+                  className="flex items-center space-x-1 text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-lg font-bold hover:bg-emerald-500/20 cursor-pointer"
+                >
+                  <FiPlus className="w-3.5 h-3.5" />
+                  <span>Add Beneficiary</span>
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {beneficiaries.filter(b => !b.isNominee).length === 0 ? (
+                <p className="text-xs text-zinc-500 italic text-center py-6">No beneficiaries registered (Max 3 Beneficiaries)</p>
+              ) : (
+                beneficiaries.filter(b => !b.isNominee).map((ben) => (
+                  <div
+                    key={ben._id}
+                    className="flex items-center justify-between p-3 rounded-2xl bg-zinc-950/40 light:bg-zinc-100/60 border border-zinc-850 light:border-zinc-355 text-xs"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={`${API_HOST}${ben.photoUrl}`}
+                        alt={ben.name}
+                        className="w-10 h-10 rounded-lg object-cover border border-zinc-800"
+                      />
+                      <div>
+                        <p className="font-bold">{ben.name}</p>
+                        <p className="text-[10px] text-zinc-500 font-semibold uppercase">
+                          {ben.relationship} • {ben.mobile}
+                        </p>
+                        <p className="text-[9px] text-zinc-500 font-mono mt-0.5">Aadhaar: {ben.aadhaarNumber}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-4">
+                      {ben.signatureUrl && (
+                        <div className="text-right flex flex-col items-end space-y-0.5">
+                          <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-wide">Signature</span>
+                          <img
+                            src={`${API_HOST}${ben.signatureUrl}`}
+                            alt="beneficiary signature"
+                            className="w-14 h-8 object-contain bg-white rounded border border-zinc-800 cursor-pointer"
+                            title="Click to view signature"
+                            onClick={() => window.open(`${API_HOST}${ben.signatureUrl}`, '_blank')}
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex items-center space-x-2">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-500/15 text-emerald-400">
+                          {ben.status}
+                        </span>
+                        {hasPermission('canEditCustomer') && (
+                          <button
+                            onClick={() => handleDeleteBeneficiary(ben._id)}
+                            className="p-1.5 rounded bg-rose-500/10 text-rose-400 hover:bg-rose-500/25 transition-colors cursor-pointer"
+                          >
+                            <FiTrash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
         </div>
 
         {/* Visit logs timeline */}
@@ -448,7 +563,7 @@ const CustomerDetail = () => {
                 >
                   <option value="">-- Select Available Locker --</option>
                   {availableLockers.map(l => (
-                    <option key={l._id} value={l._id}>Locker {l.lockerNumber} ({l.size})</option>
+                    <option key={l._id} value={l._id}>Locker {l.lockerNumber}{l.size ? ` (${l.size})` : ''}</option>
                   ))}
                 </select>
               </div>
@@ -483,14 +598,16 @@ const CustomerDetail = () => {
         </div>
       )}
 
-      {/* Modal - Add Beneficiary */}
+      {/* Modal - Add Beneficiary / Nominee */}
       {showBeneficiaryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
           <form
             onSubmit={handleAddBeneficiary}
             className="w-full max-w-lg glass-panel p-6 rounded-3xl border border-zinc-800 shadow-2xl space-y-4"
           >
-            <h3 className="text-md font-bold uppercase tracking-wider text-emerald-400">Register Beneficiary</h3>
+            <h3 className="text-md font-bold uppercase tracking-wider text-emerald-400">
+              Register {isNomineeSelection ? 'Nominee' : 'Beneficiary'}
+            </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               
@@ -505,7 +622,7 @@ const CustomerDetail = () => {
                     className="w-full h-36 object-cover rounded-xl mb-2"
                   />
                 ) : beneficiaryPhoto ? (
-                  <img src={beneficiaryPhoto} alt="Beneficiary Snapshot" className="w-full h-36 object-cover rounded-xl mb-2" />
+                  <img src={beneficiaryPhoto} alt="Snapshot" className="w-full h-36 object-cover rounded-xl mb-2" />
                 ) : (
                   <div className="h-36 flex flex-col items-center justify-center text-zinc-500">
                     <FiCamera className="w-8 h-8 mb-1" />
@@ -577,12 +694,33 @@ const CustomerDetail = () => {
                 </div>
               </div>
 
+              {/* Signature Image File Upload */}
+              <div className="space-y-1 md:col-span-2 pt-2 border-t border-zinc-850">
+                <label className="text-[10px] font-bold text-zinc-450 uppercase tracking-wide">
+                  Signature Image File
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  required
+                  onChange={(e) => setBeneficiarySignature(e.target.files[0])}
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 text-xs outline-none text-zinc-300"
+                />
+                <p className="text-[9px] text-zinc-500 mt-0.5">
+                  Please upload a scanned image or photo of their signature.
+                </p>
+              </div>
+
             </div>
 
             <div className="flex justify-end space-x-2 pt-2 text-xs">
               <button
                 type="button"
-                onClick={() => setShowBeneficiaryModal(false)}
+                onClick={() => {
+                  setShowBeneficiaryModal(false);
+                  setBeneficiarySignature(null);
+                  setIsNomineeSelection(false);
+                }}
                 className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-850 text-zinc-400 font-semibold cursor-pointer"
               >
                 Cancel
@@ -591,7 +729,7 @@ const CustomerDetail = () => {
                 type="submit"
                 className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-450 text-white font-semibold cursor-pointer"
               >
-                Save Beneficiary
+                Save {isNomineeSelection ? 'Nominee' : 'Beneficiary'}
               </button>
             </div>
 

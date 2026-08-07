@@ -5,6 +5,7 @@ const SettingsSchema = new mongoose.Schema({
   companyAddress: { type: String, default: '' },
   companyPhone: { type: String, default: '' },
   cameraDeviceId: { type: String, default: '' },
+  lockerSizes: { type: [String], default: ['A', 'B', 'C'] },
   backupConfig: {
     autoBackupEnabled: { type: Boolean, default: true },
     backupIntervalHours: { type: Number, default: 24 },

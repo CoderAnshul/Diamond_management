@@ -53,6 +53,7 @@ const CustomerRegister = () => {
           setValue('depositAmount', customer.depositAmount);
           setValue('agreementDate', customer.agreementDate ? customer.agreementDate.split('T')[0] : '');
           setValue('remarks', customer.remarks || '');
+          setValue('codeWord', customer.codeWord || '');
           
           if (customer.lockerId) {
             // Append currently occupied locker to the list of choices
@@ -362,10 +363,22 @@ const CustomerRegister = () => {
                   <option value="">-- No Locker Assigned --</option>
                   {lockers.map(l => (
                     <option key={l._id} value={l._id}>
-                      Locker {l.lockerNumber} ({l.size})
+                      Locker {l.lockerNumber}{l.size ? ` (${l.size})` : ''}
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Code Word */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Customer Code Word</label>
+                <input
+                  type="text"
+                  placeholder="Enter custom codeword"
+                  className="w-full bg-zinc-950 light:bg-zinc-100 border border-zinc-850 light:border-zinc-300 focus:border-emerald-500 rounded-xl py-2 px-3 text-xs outline-none transition-all"
+                  {...register('codeWord', { required: 'Code Word is required' })}
+                />
+                {errors.codeWord && <span className="text-[9px] text-rose-500 font-semibold">{errors.codeWord.message}</span>}
               </div>
 
               {/* Deposit Amount */}

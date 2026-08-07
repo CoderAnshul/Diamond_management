@@ -62,6 +62,11 @@ const CustomerSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  codeWord: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   photoUrl: {
     type: String,
     required: true

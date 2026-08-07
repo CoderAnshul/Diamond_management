@@ -1,6 +1,0 @@
-This is a placeholder for the Diamond Locker Management System Desktop Installer.
-To compile the real installer:
-1. Run "npm install -D electron-builder" in the root directory.
-2. Configure build parameters in package.json.
-3. Run "npx electron-builder build --win --portable".
-4. Copy the resulting .exe file from the dist-electron/ folder to this path (backend/storage/uploads/DiamondLockerSetup.exe).

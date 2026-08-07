@@ -28,6 +28,16 @@ const LockerList = () => {
   const [startNumber, setStartNumber] = useState('');
   const [endNumber, setEndNumber] = useState('');
   const [newLockerStatus, setNewLockerStatus] = useState('available');
+  const [newLockerSize, setNewLockerSize] = useState('a');
+  const [newLockerKey, setNewLockerKey] = useState('');
+
+  // Edit locker state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingLocker, setEditingLocker] = useState(null);
+  const [editLockerSize, setEditLockerSize] = useState('');
+  const [editLockerKey, setEditLockerKey] = useState('');
+  const [editLockerStatus, setEditLockerStatus] = useState('available');
+
 
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedLockerHistory, setSelectedLockerHistory] = useState(null);
@@ -53,6 +63,27 @@ const LockerList = () => {
     }
   };
 
+  const [settings, setSettings] = useState(null);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get('/settings');
+      if (response.data.success) {
+        setSettings(response.data.settings);
+        const sizes = response.data.settings.lockerSizes || [];
+        if (sizes.length > 0) {
+          setNewLockerSize(sizes[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load settings:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
   useEffect(() => {
     fetchLockers();
   }, [statusFilter]);
@@ -61,8 +92,7 @@ const LockerList = () => {
     e.preventDefault();
     try {
       const payload = {
-        status: newLockerStatus,
-        size: 'small' // Default size
+        status: newLockerStatus
       };
 
       if (createMode === 'bulk') {
@@ -72,12 +102,15 @@ const LockerList = () => {
         }
         payload.startNumber = startNumber;
         payload.endNumber = endNumber;
+        payload.size = ''; // bulk creation keeps the size empty
       } else {
         if (!newLockerNumber) {
           toast.error('Please enter a locker number');
           return;
         }
         payload.lockerNumber = newLockerNumber;
+        payload.size = newLockerSize;
+        payload.keyNumber = newLockerKey;
       }
 
       const response = await api.post('/lockers', payload);
@@ -85,12 +118,40 @@ const LockerList = () => {
         toast.success(response.data.message || 'Lockers created successfully');
         setShowAddModal(false);
         setNewLockerNumber('');
+        setNewLockerKey('');
         setStartNumber('');
         setEndNumber('');
         fetchLockers();
       }
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to create locker');
+    }
+  };
+
+  const handleOpenEditModal = (locker) => {
+    setEditingLocker(locker);
+    setEditLockerSize(locker.size || '');
+    setEditLockerKey(locker.keyNumber || '');
+    setEditLockerStatus(locker.status || 'available');
+    setShowEditModal(true);
+  };
+
+  const handleEditLocker = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.put(`/lockers/${editingLocker._id}`, {
+        size: editLockerSize,
+        keyNumber: editLockerKey,
+        status: editLockerStatus
+      });
+      if (response.data.success) {
+        toast.success('Locker updated successfully');
+        setShowEditModal(false);
+        setEditingLocker(null);
+        fetchLockers();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update locker');
     }
   };
 
@@ -204,9 +265,9 @@ const LockerList = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {lockers.map((locker) => {
             const statusColors = {
-              available: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400',
-              occupied: 'border-amber-500/30 bg-amber-500/5 text-amber-400',
-              maintenance: 'border-zinc-700 bg-zinc-800/40 text-zinc-400'
+              available: 'border-emerald-500/50 bg-emerald-500/16 text-emerald-400',
+              occupied: 'border-amber-500/50 bg-amber-500/16 text-amber-400',
+              maintenance: 'border-zinc-300 bg-zinc-100 text-zinc-500'
             };
 
             return (
@@ -224,6 +285,17 @@ const LockerList = () => {
                     <span className="w-2.5 h-2.5 rounded-full bg-current"></span>
                   </div>
                   <h3 className="text-xl font-bold font-mono mt-1">Locker {locker.lockerNumber}</h3>
+                  {locker.size && (
+                    <p className="text-[10px] opacity-75 font-semibold">
+                      Size: {locker.size}
+                    </p>
+                  )}
+                  {locker.keyNumber && (
+                    <p className="text-[10px] opacity-75 font-semibold font-mono text-zinc-500">
+                      Key: {locker.keyNumber}
+                    </p>
+                  )}
+
                 </div>
 
                 <div className="space-y-2">
@@ -245,6 +317,16 @@ const LockerList = () => {
                     >
                       <FiEye className="w-3.5 h-3.5" />
                     </button>
+
+                    {hasPermission('canManageLockers') && (
+                      <button
+                        onClick={() => handleOpenEditModal(locker)}
+                        className="p-1 rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-400"
+                        title="Edit Locker Details"
+                      >
+                        <FiEdit2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
 
                     {locker.status === 'available' && hasPermission('canRegisterCustomer') && (
                       <button
@@ -348,16 +430,40 @@ const LockerList = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase">Locker Number</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. L-102"
-                    value={newLockerNumber}
-                    onChange={(e) => setNewLockerNumber(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
-                  />
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Locker Number</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. L-102"
+                      value={newLockerNumber}
+                      onChange={(e) => setNewLockerNumber(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Locker Size</label>
+                    <select
+                      value={newLockerSize}
+                      onChange={(e) => setNewLockerSize(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none cursor-pointer"
+                    >
+                      {(settings?.lockerSizes || ['A', 'B', 'C']).map(size => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Key Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. K-107 (optional)"
+                      value={newLockerKey}
+                      onChange={(e) => setNewLockerKey(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -496,6 +602,82 @@ const LockerList = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {/* Modal - Edit Locker */}
+      {showEditModal && editingLocker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <form
+            onSubmit={handleEditLocker}
+            className="w-full max-w-md glass-panel p-6 rounded-3xl border border-zinc-850 shadow-2xl space-y-4"
+          >
+            <h3 className="text-md font-bold uppercase tracking-wider text-emerald-400">
+              Edit Locker {editingLocker.lockerNumber}
+            </h3>
+
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-450 uppercase">Locker Size</label>
+                <select
+                  value={editLockerSize}
+                  onChange={(e) => setEditLockerSize(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none cursor-pointer"
+                >
+                  <option value="">-- No Size Assigned --</option>
+                  {(settings?.lockerSizes || ['A', 'B', 'C']).map(size => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-455 uppercase">Key Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. K-107 (leave blank for empty)"
+                  value={editLockerKey}
+                  onChange={(e) => setEditLockerKey(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-460 uppercase">Locker Status</label>
+                <select
+                  value={editLockerStatus}
+                  onChange={(e) => setEditLockerStatus(e.target.value)}
+                  disabled={editingLocker.status === 'occupied'}
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none cursor-pointer disabled:opacity-50"
+                >
+                  <option value="available">Available</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="occupied">Occupied</option>
+                </select>
+                {editingLocker.status === 'occupied' && (
+                  <p className="text-[9px] text-amber-500 italic mt-0.5">Status is locked because the locker is occupied.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingLocker(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-850 text-zinc-400 font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-450 text-white font-semibold cursor-pointer"
+              >
+                Save Details
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

@@ -14,7 +14,7 @@ export const getSettings = async (req, res) => {
 };
 
 export const updateSettings = async (req, res) => {
-  const { companyName, companyAddress, companyPhone, cameraDeviceId, backupConfig } = req.body;
+  const { companyName, companyAddress, companyPhone, cameraDeviceId, backupConfig, lockerSizes } = req.body;
   try {
     let settings = await Settings.findOne({});
     if (!settings) {
@@ -25,6 +25,7 @@ export const updateSettings = async (req, res) => {
     if (companyAddress !== undefined) settings.companyAddress = companyAddress;
     if (companyPhone !== undefined) settings.companyPhone = companyPhone;
     if (cameraDeviceId !== undefined) settings.cameraDeviceId = cameraDeviceId;
+    if (lockerSizes !== undefined) settings.lockerSizes = lockerSizes;
 
     if (backupConfig) {
       if (backupConfig.autoBackupEnabled !== undefined) {

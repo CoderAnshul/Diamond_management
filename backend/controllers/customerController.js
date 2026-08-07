@@ -82,7 +82,7 @@ export const getCustomerById = async (req, res) => {
 // Register customer
 export const registerCustomer = async (req, res) => {
   try {
-    const { name, mobile, altMobile, address, aadhaarNumber, depositAmount, agreementDate, lockerId, remarks } = req.body;
+    const { name, mobile, altMobile, address, aadhaarNumber, depositAmount, agreementDate, lockerId, remarks, codeWord } = req.body;
     
     // Check duplicates
     const existing = await Customer.findOne({ $or: [{ mobile }, { aadhaarNumber }], isDeleted: false });
@@ -140,7 +140,8 @@ export const registerCustomer = async (req, res) => {
       remarks,
       photoUrl,
       documents,
-      lockerId: lockerId || null
+      lockerId: lockerId || null,
+      codeWord: codeWord || ''
     });
 
     // Handle locker assignment
@@ -184,7 +185,7 @@ export const registerCustomer = async (req, res) => {
 // Update Customer Details
 export const updateCustomer = async (req, res) => {
   try {
-    const { name, mobile, altMobile, address, aadhaarNumber, depositAmount, agreementDate, remarks } = req.body;
+    const { name, mobile, altMobile, address, aadhaarNumber, depositAmount, agreementDate, remarks, codeWord } = req.body;
     
     const customer = await Customer.findOne({ _id: req.params.id, isDeleted: false });
     if (!customer) {
@@ -217,6 +218,7 @@ export const updateCustomer = async (req, res) => {
     if (depositAmount !== undefined) customer.depositAmount = parseFloat(depositAmount) || 0;
     if (agreementDate) customer.agreementDate = new Date(agreementDate);
     if (remarks !== undefined) customer.remarks = remarks;
+    if (codeWord !== undefined) customer.codeWord = codeWord;
 
     // Handle Photo change
     if (req.files && req.files.photo) {
@@ -316,15 +318,31 @@ export const deleteCustomer = async (req, res) => {
   }
 };
 
-// Beneficiary - Add
 export const addBeneficiary = async (req, res) => {
   try {
-    const { name, relationship, mobile, aadhaarNumber } = req.body;
+    const { name, relationship, mobile, aadhaarNumber, isNominee } = req.body;
     const customerId = req.params.id;
 
     const customer = await Customer.findOne({ _id: customerId, isDeleted: false });
     if (!customer) {
       return res.status(404).json({ success: false, error: 'Customer not found' });
+    }
+
+    const isNomineeVal = isNominee === 'true' || isNominee === true;
+
+    // Check count limits
+    const existingList = await Beneficiary.find({ customerId, isDeleted: false });
+    const activeBens = existingList.filter(b => !b.isNominee);
+    const activeNoms = existingList.filter(b => b.isNominee);
+
+    if (isNomineeVal) {
+      if (activeNoms.length >= 1) {
+        return res.status(400).json({ success: false, error: 'A customer can have at most 1 nominee.' });
+      }
+    } else {
+      if (activeBens.length >= 3) {
+        return res.status(400).json({ success: false, error: 'A customer can have at most 3 beneficiaries.' });
+      }
     }
 
     let photoUrl = '';
@@ -340,6 +358,19 @@ export const addBeneficiary = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Beneficiary photo is required' });
     }
 
+    let signatureUrl = '';
+    if (req.files && req.files.signature) {
+      signatureUrl = `/uploads/photos/${req.files.signature[0].filename}`;
+    } else if (req.body.signatureData) {
+      const base64Data = req.body.signatureData.replace(/^data:image\/\w+;base64,/, '');
+      const filename = `sig-beneficiary-${Date.now()}.jpg`;
+      const filepath = `storage/uploads/photos/${filename}`;
+      fs.writeFileSync(filepath, base64Data, { encoding: 'base64' });
+      signatureUrl = `/uploads/photos/${filename}`;
+    } else {
+      return res.status(400).json({ success: false, error: 'Signature image file is required' });
+    }
+
     const beneficiary = await Beneficiary.create({
       customerId,
       name,
@@ -347,6 +378,8 @@ export const addBeneficiary = async (req, res) => {
       mobile,
       aadhaarNumber,
       photoUrl,
+      signatureUrl,
+      isNominee: isNomineeVal,
       status: 'active'
     });
 
@@ -356,7 +389,7 @@ export const addBeneficiary = async (req, res) => {
       action: 'ADD_BENEFICIARY',
       module: 'Customer',
       customerId,
-      remarks: `Added beneficiary: ${name} for customer: ${customer.name}`,
+      remarks: `Added ${isNomineeVal ? 'nominee' : 'beneficiary'}: ${name} for customer: ${customer.name}`,
       ipAddress: req.ip
     });
 

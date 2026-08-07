@@ -18,7 +18,7 @@ createFolders();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (file.fieldname === 'photo' || file.fieldname === 'beneficiaryPhoto' || file.fieldname === 'capturedPhoto') {
+    if (file.fieldname === 'photo' || file.fieldname === 'beneficiaryPhoto' || file.fieldname === 'capturedPhoto' || file.fieldname === 'signature') {
       cb(null, 'storage/uploads/photos');
     } else {
       cb(null, 'storage/uploads/docs');
@@ -31,7 +31,7 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  if (file.fieldname === 'photo' || file.fieldname === 'beneficiaryPhoto' || file.fieldname === 'capturedPhoto') {
+  if (file.fieldname === 'photo' || file.fieldname === 'beneficiaryPhoto' || file.fieldname === 'capturedPhoto' || file.fieldname === 'signature') {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {

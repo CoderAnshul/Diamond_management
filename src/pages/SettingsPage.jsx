@@ -18,6 +18,10 @@ const SettingsPage = () => {
   const [companyAddress, setCompanyAddress] = useState('');
   const [companyPhone, setCompanyPhone] = useState('');
   
+  // Custom Locker Sizes list
+  const [lockerSizes, setLockerSizes] = useState([]);
+  const [newSizeInput, setNewSizeInput] = useState('');
+  
   // Camera settings
   const [cameraDeviceId, setCameraDeviceId] = useState('');
   const [videoDevices, setVideoDevices] = useState([]);
@@ -44,6 +48,7 @@ const SettingsPage = () => {
         setCompanyAddress(settings.companyAddress || '');
         setCompanyPhone(settings.companyPhone || '');
         setCameraDeviceId(settings.cameraDeviceId || '');
+        setLockerSizes(settings.lockerSizes || ['A', 'B', 'C']);
         
         if (settings.backupConfig) {
           setAutoBackupEnabled(settings.backupConfig.autoBackupEnabled);
@@ -93,6 +98,40 @@ const SettingsPage = () => {
     getMediaDevices();
   }, []);
 
+  const handleAddSize = async () => {
+    const trimmed = newSizeInput.trim();
+    if (!trimmed) return;
+    if (lockerSizes.includes(trimmed)) {
+      toast.error('Size already exists');
+      return;
+    }
+    const updatedSizes = [...lockerSizes, trimmed];
+    setLockerSizes(updatedSizes);
+    setNewSizeInput('');
+    try {
+      const response = await api.put('/settings', { lockerSizes: updatedSizes });
+      if (response.data.success) {
+        toast.success(`Size "${trimmed}" added and saved`);
+      }
+    } catch (err) {
+      toast.error('Failed to save sizes to database');
+    }
+  };
+
+  const handleRemoveSize = async (indexToRemove) => {
+    const sizeToRemove = lockerSizes[indexToRemove];
+    const updatedSizes = lockerSizes.filter((_, idx) => idx !== indexToRemove);
+    setLockerSizes(updatedSizes);
+    try {
+      const response = await api.put('/settings', { lockerSizes: updatedSizes });
+      if (response.data.success) {
+        toast.success(`Size "${sizeToRemove}" removed and saved`);
+      }
+    } catch (err) {
+      toast.error('Failed to save changes to database');
+    }
+  };
+
   const handleSaveSettings = async (e) => {
     e.preventDefault();
     setSavingSettings(true);
@@ -102,6 +141,7 @@ const SettingsPage = () => {
         companyAddress,
         companyPhone,
         cameraDeviceId,
+        lockerSizes,
         backupConfig: {
           autoBackupEnabled,
           backupIntervalHours: backupInterval,
@@ -235,6 +275,53 @@ const SettingsPage = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Locker Sizes */}
+            <div className="space-y-4 pt-4 border-t border-zinc-850">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-emerald-400 flex items-center space-x-1.5">
+                <FiSettings /> <span>Locker Sizes</span>
+              </h4>
+              <p className="text-[11px] text-zinc-400">Add or remove locker sizes available in the system. Changing this does not affect existing locker records.</p>
+              
+              <div className="flex flex-wrap gap-2 py-2">
+                {lockerSizes.map((size, idx) => (
+                  <span
+                    key={idx}
+                    className="flex items-center space-x-1.5 bg-zinc-950 border border-zinc-850 px-3 py-1 rounded-full text-xs font-semibold"
+                  >
+                    <span className="text-zinc-250 light:text-zinc-900">{size}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSize(idx)}
+                      className="text-rose-500 hover:text-rose-400 font-bold ml-1 outline-none cursor-pointer text-sm leading-none"
+                      title="Remove size"
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ))}
+                {lockerSizes.length === 0 && (
+                  <p className="text-[11px] text-zinc-500 italic">No locker sizes configured. Please add one below.</p>
+                )}
+              </div>
+
+              <div className="flex space-x-2 max-w-sm text-xs">
+                <input
+                  type="text"
+                  placeholder="New size name (e.g. Medium Box)"
+                  value={newSizeInput}
+                  onChange={(e) => setNewSizeInput(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSize}
+                  className="bg-emerald-500 hover:bg-emerald-450 text-white px-4 rounded-xl font-bold active:scale-95 transition-all cursor-pointer"
+                >
+                  Add Size
+                </button>
               </div>
             </div>
 

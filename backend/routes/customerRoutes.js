@@ -17,6 +17,7 @@ const router = express.Router();
 const fileUploads = upload.fields([
   { name: 'photo', maxCount: 1 },
   { name: 'beneficiaryPhoto', maxCount: 1 },
+  { name: 'signature', maxCount: 1 },
   { name: 'aadhaarDoc', maxCount: 1 },
   { name: 'agreementDoc', maxCount: 1 },
   { name: 'otherDoc', maxCount: 1 }

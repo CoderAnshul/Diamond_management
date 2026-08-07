@@ -35,8 +35,8 @@ export const getLockerById = async (req, res) => {
 };
 
 export const createLocker = async (req, res) => {
-  const { lockerNumber, startNumber, endNumber, size, status } = req.body;
-  const defaultSize = size || 'small'; // Default size to 'small' as all lockers are the same size
+  const { lockerNumber, startNumber, endNumber, size, status, keyNumber } = req.body;
+  const finalSize = size !== undefined ? size : 'a';
 
   try {
     // Range-based bulk locker creation
@@ -72,7 +72,7 @@ export const createLocker = async (req, res) => {
       // Prepare documents
       const docs = numbersToInsert.map(num => ({
         lockerNumber: num,
-        size: defaultSize,
+        size: '',
         status: status || 'available'
       }));
 
@@ -104,10 +104,18 @@ export const createLocker = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Locker number already exists' });
     }
 
+    if (keyNumber && keyNumber.trim() !== '') {
+      const existingKey = await Locker.findOne({ keyNumber: { $regex: new RegExp(`^${keyNumber.trim()}$`, 'i') } });
+      if (existingKey) {
+        return res.status(400).json({ success: false, error: `Key number "${keyNumber}" already exists on Locker ${existingKey.lockerNumber}` });
+      }
+    }
+
     const locker = await Locker.create({
       lockerNumber,
-      size: defaultSize,
-      status: status || 'available'
+      size: finalSize,
+      status: status || 'available',
+      keyNumber: keyNumber ? keyNumber.trim() : ''
     });
 
     await logActivity({
@@ -116,7 +124,7 @@ export const createLocker = async (req, res) => {
       action: 'CREATE_LOCKER',
       module: 'Locker',
       lockerId: locker._id,
-      remarks: `Created locker: ${lockerNumber} (${defaultSize})`,
+      remarks: `Created locker: ${lockerNumber} (Size: ${finalSize}${keyNumber ? `, Key: ${keyNumber}` : ''})`,
       ipAddress: req.ip
     });
 
@@ -127,7 +135,7 @@ export const createLocker = async (req, res) => {
 };
 
 export const updateLocker = async (req, res) => {
-  const { size, status, remarks } = req.body;
+  const { size, status, remarks, keyNumber } = req.body;
   try {
     const locker = await Locker.findById(req.params.id);
     if (!locker) {
@@ -141,6 +149,19 @@ export const updateLocker = async (req, res) => {
     if (size) locker.size = size;
     if (status) locker.status = status;
 
+    if (keyNumber !== undefined && keyNumber.trim() !== '') {
+      const existingKey = await Locker.findOne({
+        _id: { $ne: req.params.id },
+        keyNumber: { $regex: new RegExp(`^${keyNumber.trim()}$`, 'i') }
+      });
+      if (existingKey) {
+        return res.status(400).json({ success: false, error: `Key number "${keyNumber}" already exists on Locker ${existingKey.lockerNumber}` });
+      }
+      locker.keyNumber = keyNumber.trim();
+    } else if (keyNumber === '') {
+      locker.keyNumber = '';
+    }
+
     await locker.save();
 
     await logActivity({
@@ -149,7 +170,7 @@ export const updateLocker = async (req, res) => {
       action: 'UPDATE_LOCKER',
       module: 'Locker',
       lockerId: locker._id,
-      remarks: `Updated locker ${locker.lockerNumber}: Status=${locker.status}, Size=${locker.size}. Remarks: ${remarks || ''}`,
+      remarks: `Updated locker ${locker.lockerNumber}: Status=${locker.status}, Size=${locker.size}, Key=${locker.keyNumber || 'None'}. Remarks: ${remarks || ''}`,
       ipAddress: req.ip
     });
 

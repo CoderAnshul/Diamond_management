@@ -9,6 +9,7 @@ import fs from 'fs';
 import connectDB from './config/db.js';
 import User from './models/User.js';
 import bcrypt from 'bcryptjs';
+import Locker from './models/Locker.js';
 
 // Route Imports
 import authRoutes from './routes/authRoutes.js';
@@ -134,5 +135,12 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, async () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   await seedOwnerUser();
+  try {
+    await Locker.updateMany({ size: 'a' }, { size: 'A' });
+    await Locker.updateMany({ size: 'b' }, { size: 'B' });
+    await Locker.updateMany({ size: 'c' }, { size: 'C' });
+  } catch (err) {
+    console.error('Locker size migration failed:', err.message);
+  }
   startBackupInterval();
 });

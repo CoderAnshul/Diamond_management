@@ -32,6 +32,15 @@ const BeneficiarySchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  signatureUrl: {
+    type: String,
+    required: true
+  },
+  isNominee: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
   status: {
     type: String,
     enum: ['active', 'inactive'],

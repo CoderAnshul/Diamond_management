@@ -10,13 +10,16 @@ import {
   FiActivity,
   FiKey,
   FiPlus,
-  FiCheckCircle
+  FiCheckCircle,
+  FiUploadCloud
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const LockerEntryFlow = () => {
   const [searchParams] = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
+  const { user } = useAuth();
 
   // Step state
   const [step, setStep] = useState(1); // 1: Search, 2: Profile & Verify, 3: Success
@@ -44,6 +47,13 @@ const LockerEntryFlow = () => {
       const response = await api.get('/auth/users', { params: { includeOwner: 'true' } });
       if (response.data.success) {
         setStaffList(response.data.users);
+        const currentUserId = user?.id || user?._id;
+        if (currentUserId) {
+          const matched = response.data.users.find(u => u._id === currentUserId);
+          if (matched) {
+            setSelectedStaffId(currentUserId);
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to fetch staff list:', err.message);
@@ -74,6 +84,16 @@ const LockerEntryFlow = () => {
       handleSearch();
     }
   }, [initialSearch]);
+
+  useEffect(() => {
+    const currentUserId = user?.id || user?._id;
+    if (currentUserId && staffList.length > 0 && !selectedStaffId) {
+      const matched = staffList.find(u => u._id === currentUserId);
+      if (matched) {
+        setSelectedStaffId(currentUserId);
+      }
+    }
+  }, [user, staffList, selectedStaffId]);
 
   const handleSelectClient = (client) => {
     if (!client.customer.lockerId) {
@@ -145,7 +165,17 @@ const LockerEntryFlow = () => {
   const handleResetFlow = () => {
     setSelectedClient(null);
     setLivePhoto(null);
-    setSelectedStaffId('');
+    const currentUserId = user?.id || user?._id;
+    if (currentUserId) {
+      const matched = staffList.find(u => u._id === currentUserId);
+      if (matched) {
+        setSelectedStaffId(currentUserId);
+      } else {
+        setSelectedStaffId('');
+      }
+    } else {
+      setSelectedStaffId('');
+    }
     setVerificationStatus('verified');
     setEntryRemarks('');
     setSearchQuery('');
@@ -270,22 +300,44 @@ const LockerEntryFlow = () => {
                   )}
                 </div>
 
-                <div className="flex space-x-2 pt-1 w-full text-xs">
+                <div className="flex flex-col space-y-2 pt-1 w-full text-xs">
                   {bootCamera ? (
-                    <button
-                      type="button"
-                      onClick={handleCaptureSnapshot}
-                      className="flex-1 bg-emerald-500 text-white font-semibold py-2 rounded-xl flex items-center justify-center space-x-1.5 cursor-pointer shadow-md"
-                    >
-                      <FiCamera /> <span>Capture snapshot</span>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleCaptureSnapshot}
+                        className="w-full bg-emerald-500 text-white font-semibold py-2 rounded-xl flex items-center justify-center space-x-1.5 cursor-pointer shadow-md"
+                      >
+                        <FiCamera /> <span>Capture Snapshot</span>
+                      </button>
+                      <label className="w-full bg-zinc-900 border border-zinc-850 hover:bg-zinc-850 text-zinc-350 py-2 rounded-xl font-semibold text-center cursor-pointer flex items-center justify-center space-x-1.5">
+                        <FiUploadCloud /> <span>Upload From File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setLivePhoto(reader.result);
+                                setBootCamera(false);
+                                toast.success('Visit photo uploaded successfully');
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </>
                   ) : (
                     <button
                       type="button"
                       onClick={handleRecapture}
-                      className="flex-1 bg-zinc-850 text-zinc-300 font-semibold py-2 rounded-xl flex items-center justify-center space-x-1.5 cursor-pointer"
+                      className="w-full bg-zinc-850 text-zinc-300 font-semibold py-2 rounded-xl flex items-center justify-center space-x-1.5 cursor-pointer"
                     >
-                      <FiPlus className="rotate-45" /> <span>Recapture Photo</span>
+                      <FiPlus className="rotate-45" /> <span>Reset & Recapture/Upload</span>
                     </button>
                   )}
                 </div>

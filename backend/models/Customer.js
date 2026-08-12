@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const DocumentSchema = new mongoose.Schema({
   docType: {
     type: String,
-    enum: ['aadhaar', 'agreement', 'other'],
+    enum: ['aadhaar', 'agreement', 'other', 'vacate'],
     required: true
   },
   fileUrl: {

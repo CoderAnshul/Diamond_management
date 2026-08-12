@@ -16,7 +16,11 @@ const LockerHistorySchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  remarks: String
+  remarks: String,
+  documentUrl: {
+    type: String,
+    default: null
+  }
 });
 
 const LockerSchema = new mongoose.Schema({

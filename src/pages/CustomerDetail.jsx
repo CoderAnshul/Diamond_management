@@ -15,7 +15,8 @@ import {
   FiPhone,
   FiBook,
   FiInfo,
-  FiExternalLink
+  FiExternalLink,
+  FiUploadCloud
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -45,6 +46,11 @@ const CustomerDetail = () => {
   const [isNomineeSelection, setIsNomineeSelection] = useState(false);
   const webcamRef = useRef(null);
 
+  const [showVacateModal, setShowVacateModal] = useState(false);
+  const [vacateRemarks, setVacateRemarks] = useState('');
+  const [vacateDoc, setVacateDoc] = useState(null);
+  const [vacateSubmitting, setVacateSubmitting] = useState(false);
+
   const fetchProfile = async () => {
     setLoading(true);
     try {
@@ -65,19 +71,35 @@ const CustomerDetail = () => {
     fetchProfile();
   }, [id]);
 
-  const handleVacateLocker = async () => {
+  const handleVacateLocker = () => {
     if (!profile?.customer?.lockerId) return;
-    if (window.confirm(`Are you sure you want to vacate locker ${profile.customer.lockerId.lockerNumber} assigned to ${profile.customer.name}?`)) {
-      try {
-        const remarks = window.prompt("Enter vacation remarks:") || '';
-        const response = await api.post(`/lockers/${profile.customer.lockerId._id}/vacate`, { remarks });
-        if (response.data.success) {
-          toast.success('Locker vacated successfully');
-          fetchProfile();
-        }
-      } catch (err) {
-        toast.error('Failed to vacate locker');
+    setVacateRemarks('');
+    setVacateDoc(null);
+    setShowVacateModal(true);
+  };
+
+  const handleConfirmVacate = async (e) => {
+    e.preventDefault();
+    setVacateSubmitting(true);
+    const formData = new FormData();
+    formData.append('remarks', vacateRemarks);
+    if (vacateDoc) {
+      formData.append('vacateDoc', vacateDoc);
+    }
+
+    try {
+      const response = await api.post(`/lockers/${profile.customer.lockerId._id}/vacate`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (response.data.success) {
+        toast.success('Locker vacated successfully');
+        setShowVacateModal(false);
+        fetchProfile();
       }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to vacate locker');
+    } finally {
+      setVacateSubmitting(false);
     }
   };
 
@@ -634,18 +656,40 @@ const CustomerDetail = () => {
                   <button
                     type="button"
                     onClick={captureBeneficiary}
-                    className="bg-emerald-500 text-white py-1 px-3 rounded-lg font-bold"
+                    className="w-full bg-emerald-500 text-white py-1.5 rounded-xl font-bold flex items-center justify-center space-x-1"
                   >
-                    Capture
+                    <FiCamera /> <span>Capture Snapshot</span>
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setBeneficiaryCamera(true)}
-                    className="bg-zinc-850 text-zinc-300 py-1 px-3 rounded-lg font-bold"
-                  >
-                    Use Webcam
-                  </button>
+                  <div className="w-full flex flex-col space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setBeneficiaryCamera(true)}
+                      className="w-full bg-zinc-850 text-zinc-300 py-1.5 rounded-xl font-bold flex items-center justify-center space-x-1"
+                    >
+                      <FiCamera /> <span>Use Webcam</span>
+                    </button>
+                    <label className="w-full bg-zinc-900 border border-zinc-850 hover:bg-zinc-850 text-zinc-300 py-1.5 rounded-xl font-bold text-center cursor-pointer flex items-center justify-center space-x-1">
+                      <FiUploadCloud /> <span>Upload Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setBeneficiaryPhoto(reader.result);
+                              setBeneficiaryCamera(false);
+                              toast.success('Beneficiary photo uploaded');
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 )}
               </div>
 
@@ -733,6 +777,71 @@ const CustomerDetail = () => {
               </button>
             </div>
 
+          </form>
+        </div>
+      )}
+
+      {/* Modal - Vacate Locker */}
+      {showVacateModal && profile?.customer?.lockerId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <form
+            onSubmit={handleConfirmVacate}
+            className="w-full max-w-md glass-panel p-6 rounded-3xl border border-zinc-850 shadow-2xl space-y-4"
+          >
+            <h3 className="text-md font-bold uppercase tracking-wider text-rose-450">
+              Vacate Locker {profile.customer.lockerId.lockerNumber}
+            </h3>
+
+            <p className="text-xs text-zinc-400">
+              Are you sure you want to vacate this locker assigned to <strong>{profile.customer.name}</strong>?
+            </p>
+
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-450 uppercase">Vacation Remarks</label>
+                <textarea
+                  rows="3"
+                  placeholder="Enter remarks for locker vacation"
+                  value={vacateRemarks}
+                  onChange={(e) => setVacateRemarks(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none resize-none"
+                  required
+                ></textarea>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-455 uppercase">Vacate Document (PDF/Image)</label>
+                <input
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={(e) => setVacateDoc(e.target.files[0])}
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none text-zinc-300"
+                  required
+                />
+                <p className="text-[9px] text-zinc-500 mt-0.5">Please upload a document to confirm locker vacation.</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVacateModal(false);
+                  setVacateRemarks('');
+                  setVacateDoc(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-850 text-zinc-400 font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={vacateSubmitting}
+                className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-semibold cursor-pointer disabled:opacity-50"
+              >
+                {vacateSubmitting ? 'Vacating...' : 'Confirm Vacate'}
+              </button>
+            </div>
           </form>
         </div>
       )}

@@ -47,6 +47,13 @@ const LockerList = () => {
   const [assignSearchResults, setAssignSearchResults] = useState([]);
   const [selectedLockerId, setSelectedLockerId] = useState('');
 
+  const [showVacateModal, setShowVacateModal] = useState(false);
+  const [vacateLockerId, setVacateLockerId] = useState('');
+  const [vacateLockerNumber, setVacateLockerNumber] = useState('');
+  const [vacateRemarks, setVacateRemarks] = useState('');
+  const [vacateDoc, setVacateDoc] = useState(null);
+  const [vacateSubmitting, setVacateSubmitting] = useState(false);
+
   const fetchLockers = async () => {
     setLoading(true);
     try {
@@ -102,7 +109,7 @@ const LockerList = () => {
         }
         payload.startNumber = startNumber;
         payload.endNumber = endNumber;
-        payload.size = ''; // bulk creation keeps the size empty
+        payload.size = newLockerSize;
       } else {
         if (!newLockerNumber) {
           toast.error('Please enter a locker number');
@@ -200,18 +207,36 @@ const LockerList = () => {
     }
   };
 
-  const handleVacateLocker = async (lockerId, number) => {
-    if (window.confirm(`Vacate Locker ${number}?`)) {
-      try {
-        const remarks = window.prompt("Enter vacation remarks:") || '';
-        const response = await api.post(`/lockers/${lockerId}/vacate`, { remarks });
-        if (response.data.success) {
-          toast.success('Locker vacated');
-          fetchLockers();
-        }
-      } catch (err) {
-        toast.error('Failed to vacate locker');
+  const handleVacateLocker = (lockerId, number) => {
+    setVacateLockerId(lockerId);
+    setVacateLockerNumber(number);
+    setVacateRemarks('');
+    setVacateDoc(null);
+    setShowVacateModal(true);
+  };
+
+  const handleConfirmVacate = async (e) => {
+    e.preventDefault();
+    setVacateSubmitting(true);
+    const formData = new FormData();
+    formData.append('remarks', vacateRemarks);
+    if (vacateDoc) {
+      formData.append('vacateDoc', vacateDoc);
+    }
+
+    try {
+      const response = await api.post(`/lockers/${vacateLockerId}/vacate`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (response.data.success) {
+        toast.success(`Locker ${vacateLockerNumber} vacated successfully`);
+        setShowVacateModal(false);
+        fetchLockers();
       }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to vacate locker');
+    } finally {
+      setVacateSubmitting(false);
     }
   };
 
@@ -405,28 +430,42 @@ const LockerList = () => {
 
             <div className="space-y-3 text-xs">
               {createMode === 'bulk' ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Start Value</label>
-                    <input
-                      type="number"
-                      required
-                      placeholder="e.g. 101"
-                      value={startNumber}
-                      onChange={(e) => setStartNumber(e.target.value)}
-                      className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
-                    />
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase">Start Value</label>
+                      <input
+                        type="number"
+                        required
+                        placeholder="e.g. 101"
+                        value={startNumber}
+                        onChange={(e) => setStartNumber(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase">End Value</label>
+                      <input
+                        type="number"
+                        required
+                        placeholder="e.g. 110"
+                        value={endNumber}
+                        onChange={(e) => setEndNumber(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase">End Value</label>
-                    <input
-                      type="number"
-                      required
-                      placeholder="e.g. 110"
-                      value={endNumber}
-                      onChange={(e) => setEndNumber(e.target.value)}
-                      className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none"
-                    />
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Locker Size</label>
+                    <select
+                      value={newLockerSize}
+                      onChange={(e) => setNewLockerSize(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none cursor-pointer"
+                    >
+                      {(settings?.lockerSizes || ['A', 'B', 'C']).map(size => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               ) : (
@@ -675,6 +714,69 @@ const LockerList = () => {
                 className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-450 text-white font-semibold cursor-pointer"
               >
                 Save Details
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Modal - Vacate Locker */}
+      {showVacateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <form
+            onSubmit={handleConfirmVacate}
+            className="w-full max-w-md glass-panel p-6 rounded-3xl border border-zinc-850 shadow-2xl space-y-4"
+          >
+            <h3 className="text-md font-bold uppercase tracking-wider text-rose-450">
+              Vacate Locker {vacateLockerNumber}
+            </h3>
+
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-450 uppercase">Vacation Remarks</label>
+                <textarea
+                  rows="3"
+                  placeholder="Enter remarks for locker vacation"
+                  value={vacateRemarks}
+                  onChange={(e) => setVacateRemarks(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none resize-none"
+                  required
+                ></textarea>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-zinc-455 uppercase">Vacate Document (PDF/Image)</label>
+                <input
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={(e) => setVacateDoc(e.target.files[0])}
+                  className="w-full bg-zinc-950 border border-zinc-850 rounded-xl py-2 px-3 outline-none text-zinc-300"
+                  required
+                />
+                <p className="text-[9px] text-zinc-500 mt-0.5">Please upload a document to confirm locker vacation.</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-2 text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVacateModal(false);
+                  setVacateLockerId('');
+                  setVacateLockerNumber('');
+                  setVacateRemarks('');
+                  setVacateDoc(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-850 text-zinc-400 font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={vacateSubmitting}
+                className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-semibold cursor-pointer disabled:opacity-50"
+              >
+                {vacateSubmitting ? 'Vacating...' : 'Confirm Vacate'}
               </button>
             </div>
           </form>

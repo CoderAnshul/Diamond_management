@@ -72,7 +72,7 @@ export const createLocker = async (req, res) => {
       // Prepare documents
       const docs = numbersToInsert.map(num => ({
         lockerNumber: num,
-        size: '',
+        size: finalSize,
         status: status || 'available'
       }));
 
@@ -261,7 +261,6 @@ export const assignLocker = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
-
 // Vacate locker
 export const vacateLocker = async (req, res) => {
   const { remarks } = req.body;
@@ -280,6 +279,11 @@ export const vacateLocker = async (req, res) => {
     const customerId = locker.assignedCustomerId;
     const customerName = customer ? customer.name : 'Unknown';
 
+    let documentUrl = null;
+    if (req.file) {
+      documentUrl = `/uploads/docs/${req.file.filename}`;
+    }
+
     locker.status = 'available';
     locker.assignedCustomerId = null;
     locker.assignmentDate = null;
@@ -287,12 +291,19 @@ export const vacateLocker = async (req, res) => {
       customerId: customerId,
       customerName: customerName,
       action: 'vacated',
-      remarks: remarks || 'Vacated locker'
+      remarks: remarks || 'Vacated locker',
+      documentUrl: documentUrl
     });
     await locker.save();
 
     if (customer) {
       customer.lockerId = null;
+      if (documentUrl) {
+        customer.documents.push({
+          docType: 'vacate',
+          fileUrl: documentUrl
+        });
+      }
       await customer.save();
     }
 
@@ -303,7 +314,7 @@ export const vacateLocker = async (req, res) => {
       module: 'Locker',
       customerId: customerId,
       lockerId: locker._id,
-      remarks: `Vacated locker ${locker.lockerNumber} of customer ${customerName}. Remarks: ${remarks || ''}`,
+      remarks: `Vacated locker ${locker.lockerNumber} of customer ${customerName}. Remarks: ${remarks || ''}${documentUrl ? ` | Document uploaded: ${documentUrl}` : ''}`,
       ipAddress: req.ip
     });
 
